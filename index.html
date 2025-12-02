@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Color Guesser</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div id="background-palette"></div>
+
+    <div class="glass-container">
+        
+        <header class="game-header">
+            <div class="score-box">
+                🏆 Score: <span id="score-count">0</span>
+            </div>
+            <div class="streak-box">
+                🔥 Sequência: <span id="streak-count">0</span>
+            </div>
+            <div class="attempts-box">
+                ❤️ Tentativas: <span id="attempts-count">3</span>
+            </div>
+        </header>
+
+        <main id="game-screen">
+            <h1>Qual é a cor?</h1>
+            <p class="subtitle">Clique no fundo ou digite seu palpite!</p>
+            
+            <div class="input-group">
+                <input type="text" id="color-input" placeholder="Ex: Azul ou Blue" autocomplete="off">
+                <button id="guess-btn">Chutar</button>
+            </div>
+
+            <div id="feedback-message" class="message-area">
+                Vamos lá, faça seu primeiro chute!
+            </div>
+
+            <button id="restart-btn" class="hidden">Jogar Novamente ↻</button>
+        </main>
+
+        <div id="save-score-screen" class="hidden">
+            <h2>Novo Recorde! <i class="fas fa-trophy" style="color: gold;"></i></h2>
+            <p>Seu score acumulado entrou para o Top 10!</p>
+            <div class="score-highlight">Total: <span id="final-score-display">0</span></div>
+            
+            <input type="text" id="player-name" placeholder="Digite seu nome (3 letras)" maxlength="10">
+            <button id="save-btn" class="btn-primary">Salvar e Continuar</button>
+        </div>
+
+        <div id="ranking-screen" class="hidden">
+            <h2><i class="fas fa-crown" style="color: gold;"></i> Top 10 Lendas</h2>
+            <ul id="ranking-list">
+                </ul>
+            <button id="close-ranking-btn" class="btn-secondary">Voltar ao Jogo</button>
+        </div>
+
+        <footer>
+            <small>Aceita PT-BR e Inglês</small>
+            <div class="footer-action">
+                <button id="show-ranking-btn" class="btn-text">
+                    <i class="fas fa-list-ol"></i> Ver Ranking Global
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
