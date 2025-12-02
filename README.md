@@ -10,7 +10,7 @@ O objetivo foi criar uma aplicação que manipulasse o DOM, utilizasse eventos d
 
 # Como Jogar
 
-1. Acesse o link: [](https://gabrielms92.github.io/Jogo-de-Adivinhacao-de-Cores/)]
+1. Acesse o link: https://gabrielms92.github.io/Jogo-de-Adivinhacao-de-Cores/
 2. Observe: O fundo da tela contém todas as cores possíveis.
 3. Chute: Digite o nome da cor (PT ou EN) na caixa de texto OU clique diretamente na cor desejada no fundo da tela.
 4. Acumule Pontos: Acerte para aumentar sua sequência (Streak).
