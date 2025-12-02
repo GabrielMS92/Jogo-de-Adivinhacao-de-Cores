@@ -11,7 +11,7 @@ const colorData = [
 
 // --- 2. GERENCIADOR DE RANKING ---
 const RankingManager = {
-    key: 'neon_ranking_v2', // Mudei para v2 para forçar a atualização da lista
+    key: 'neon_ranking_v3', 
     data: [],
 
     init() {
@@ -19,7 +19,6 @@ const RankingManager = {
         if (stored) {
             this.data = JSON.parse(stored);
         } else {
-            // Ranking Fictício (Guest = 1 ponto, conforme pedido)
             this.data = [
                 { name: "NeonKing", score: 150 },
                 { name: "ColorMaster", score: 120 },
@@ -40,16 +39,42 @@ const RankingManager = {
         localStorage.setItem(this.key, JSON.stringify(this.data));
     },
 
+    // Verifica se a pontuação entra no Top 10
     isHighScore(score) {
         if (this.data.length < 10) return true;
         return score > this.data[this.data.length - 1].score;
     },
 
-    addScore(name, score) {
-        this.data.push({ name: name || "Anônimo", score: parseInt(score) });
+    // Retorna a posição (1-10) ou -1 se não estiver no rank
+    getRankPosition(name) {
+        const index = this.data.findIndex(p => p.name === name);
+        return index !== -1 ? index + 1 : -1;
+    },
+
+    // Adiciona ou Atualiza Score
+    addOrUpdateScore(name, score) {
+        const cleanName = name || "Anônimo";
+        
+        // Verifica se o jogador já está no ranking para atualizar
+        const existingIndex = this.data.findIndex(p => p.name === cleanName);
+        
+        if (existingIndex !== -1) {
+            // Atualiza apenas se o novo score for maior
+            if (score > this.data[existingIndex].score) {
+                this.data[existingIndex].score = parseInt(score);
+            }
+        } else {
+            // Adiciona novo
+            this.data.push({ name: cleanName, score: parseInt(score) });
+        }
+
+        // Ordena e corta
         this.data.sort((a, b) => b.score - a.score);
         this.data = this.data.slice(0, 10);
         this.save();
+        
+        // Retorna a nova posição
+        return this.getRankPosition(cleanName);
     },
 
     getHTMLList() {
@@ -66,7 +91,8 @@ const RankingManager = {
 let targetObj = null;
 let attempts = 3;
 let streak = 0;
-let score = 0; // Acumula infinitamente
+let score = 0;
+let currentPlayerName = null; // MEMÓRIA DA SESSÃO: Guarda o nome do jogador atual
 
 const els = {
     body: document.body,
@@ -106,8 +132,6 @@ function initGame() {
     targetObj = colorData[Math.floor(Math.random() * colorData.length)];
     attempts = 3;
     
-    // NOTA: Não zeramos o 'score' aqui! Ele acumula.
-    
     updateUI(false); 
     showScreen('game');
     
@@ -133,7 +157,7 @@ function checkGuess() {
 
 function handleWin() {
     streak++; 
-    score += streak; // Soma ao total acumulado
+    score += streak;
     
     els.palette.style.display = 'none';
     els.body.style.backgroundColor = targetObj.name;
@@ -158,22 +182,45 @@ function handleLoss() {
         els.input.focus();
     } else {
         // --- GAME OVER ---
-        streak = 0; // Zera apenas o multiplicador de sequência
-        // O SCORE NÃO É ZERADO! Continua o mesmo.
+        streak = 0; 
         
-        els.displays.msg.textContent = `💀 Game Over! Era ${targetObj.pt.toUpperCase()}`;
-        endRound(false);
+        // Mensagem padrão de derrota
+        let gameOverMsg = `💀 Game Over! Era ${targetObj.pt.toUpperCase()}`;
 
-        // Verifica Ranking com o Score Acumulado Atual
+        // LÓGICA INTELIGENTE DE RANKING
         if (score > 0 && RankingManager.isHighScore(score)) {
-            setTimeout(() => {
-                els.displays.finalScore.textContent = score;
-                els.nameInput.value = ''; 
-                showScreen('save');
-            }, 1500);
+            
+            // CASO 1: Já sabemos quem é o jogador (já salvou antes nesta sessão)
+            if (currentPlayerName) {
+                // Atualiza direto sem perguntar nome
+                const newRank = RankingManager.addOrUpdateScore(currentPlayerName, score);
+                
+                if (newRank !== -1) {
+                    gameOverMsg += `<br><span style="color:gold">🏆 Ranking Atualizado: Posição #${newRank}</span>`;
+                } else {
+                    gameOverMsg += `<br><span style="color:orange">⚠️ Você saiu do Top 10!</span>`;
+                }
+                
+                els.displays.msg.innerHTML = gameOverMsg;
+                endRound(false); // Apenas mostra botões, não muda de tela
+            } 
+            // CASO 2: Primeira vez entrando no Ranking (pede nome)
+            else {
+                els.displays.msg.textContent = gameOverMsg;
+                endRound(false);
+                setTimeout(() => {
+                    els.displays.finalScore.textContent = score;
+                    els.nameInput.value = ''; 
+                    showScreen('save');
+                }, 1500);
+            }
+        } else {
+            // Não entrou no ranking
+            els.displays.msg.innerHTML = gameOverMsg;
+            endRound(false);
         }
     }
-    updateUI(true); // Atualiza score na tela
+    updateUI(true);
 }
 
 function endRound(isWin) {
@@ -181,7 +228,6 @@ function endRound(isWin) {
     els.btns.guess.disabled = true;
     els.btns.restart.classList.remove('hidden');
     
-    // Atualiza pontuação na tela
     els.displays.score.textContent = score;
     els.displays.streak.textContent = streak;
 
@@ -189,7 +235,7 @@ function endRound(isWin) {
         els.btns.restart.textContent = "Próxima Rodada ➝";
         els.btns.restart.style.backgroundColor = "#2ed573";
     } else {
-        els.btns.restart.textContent = "Tentar Novamente (Score Mantido) ↻";
+        els.btns.restart.textContent = "Continuar (Score Mantido) ↻";
         els.btns.restart.style.backgroundColor = "#ff4757";
     }
 }
@@ -226,12 +272,13 @@ function generateBackgroundStripes() {
 
 // --- 6. EVENTOS DE RANKING ---
 els.btns.save.addEventListener('click', () => {
-    const name = els.nameInput.value.trim() || "Player";
-    RankingManager.addScore(name, score);
+    // Salva o nome na memória da sessão
+    currentPlayerName = els.nameInput.value.trim() || "Player";
     
-    // Mesmo após salvar, o score NÃO ZERA, permite continuar subindo no ranking
-    // Se quiser zerar APÓS salvar, descomente a linha abaixo:
-    // score = 0; streak = 0; 
+    const rankPos = RankingManager.addOrUpdateScore(currentPlayerName, score);
+    
+    // Feedback visual imediato antes de mostrar a tabela
+    alert(`Parabéns ${currentPlayerName}! Você entrou no Rank #${rankPos}`);
     
     updateRankingDisplay();
     showScreen('ranking');
@@ -244,9 +291,8 @@ els.btns.showRank.addEventListener('click', () => {
 
 els.btns.closeRank.addEventListener('click', () => {
     showScreen('game');
-    // Se estiver no "limbo" entre jogos (game over ou vitória), não reinicia sozinho
     if (attempts === 0) {
-        initGame(); // Reinicia rodada mas mantém score
+        initGame(); 
     }
 });
 
@@ -254,7 +300,6 @@ function updateRankingDisplay() {
     els.displays.rankList.innerHTML = RankingManager.getHTMLList();
 }
 
-// Eventos
 els.btns.guess.addEventListener('click', checkGuess);
 els.btns.restart.addEventListener('click', initGame);
 els.input.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkGuess(); });
